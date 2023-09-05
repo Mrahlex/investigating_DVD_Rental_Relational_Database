@@ -1,0 +1,139 @@
+/* link to Presentation - https://docs.google.com/presentation/d/11K0_gMaYKCZU6kCpHpvkXSq0guogiHa4eTKo1yaRTiI/edit?usp=sharing
+*/
+/*Question 1 : Create a query that lists each movie, the film category it is classified in, and the number of times it has been rented out.*/
+
+
+SELECT
+  f.title AS "Film title",
+  c.name AS "Category name",
+  COUNT(*) AS "Count of Rentals"
+FROM
+  film AS f
+  JOIN film_category AS fc ON f.film_id = fc.film_id
+  JOIN category AS c ON fc.category_id = c.category_id
+  JOIN inventory AS i ON f.film_id = i.film_id
+  JOIN rental AS r ON i.inventory_id = r.inventory_id
+WHERE
+  c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+GROUP BY
+  f.title,
+  c.name
+ORDER BY
+  c.name,
+  f.title;
+
+
+/*QUESTION 2 Write a query that returns the store ID for the store, the year and month and the number of rental orders each store has fulfilled for that month */
+
+SELECT
+  DATE_PART('year', rental_date) AS year,
+  DATE_PART('month', rental_date) AS month,
+  s.store_id AS "Store ID",
+  COUNT(*) AS "Count of Rental Orders"
+FROM
+  rental AS r
+  JOIN staff AS s 
+ON r.staff_id = s.staff_id
+GROUP BY 1,2,3
+ORDER BY 4 desc;
+
+
+
+
+
+/*QUESTION 3 write a query to capture the customer name, month and year of payment, and total payment amount for each month by these top 10 paying customers.*/
+
+WITH TopPayingCustomers AS (
+  SELECT
+    c.customer_id,
+    CONCAT(c.first_name, ' ', c.last_name) AS "Customer Name",
+    SUM(p.amount) AS "Total Payments"
+  FROM
+    customer AS c
+    JOIN payment AS p ON c.customer_id = p.customer_id
+  WHERE
+    DATE_PART('year', p.payment_date) = 2007
+  GROUP BY
+    c.customer_id,
+    "Customer Name"
+  ORDER BY
+    "Total Payments" DESC
+  LIMIT 10
+)
+
+SELECT
+  tpc."Customer Name",
+DATE_PART('year', p.payment_date) AS "Year",
+ DATE_PART('month', p.payment_date) AS "Month",
+  COUNT(*) AS "Monthly Payment Count",
+  SUM(p.amount) AS "Monthly Payment Amount"
+FROM
+  TopPayingCustomers AS tpc
+  JOIN payment AS p ON 
+  tpc.customer_id = p.customer_id
+WHERE
+  DATE_PART('year', p.payment_date) = 2007
+GROUP BY
+  tpc."Customer Name",
+  "Year",
+  "Month"
+ORDER BY
+  tpc."Customer Name",
+  "Year",
+  "Month";
+
+
+/*QUESTION 4* For each of these top 10 paying customers, find out the difference across their monthly payments during 2007. write a query to compare the payment amounts in each successive month.*/ 
+
+WITH TopPayingCustomers AS (
+  SELECT
+    c.customer_id,
+    CONCAT(c.first_name, ' ', c.last_name) AS "Customer Name",
+    SUM(p.amount) AS "Total Payments"
+  FROM
+    customer AS c
+    JOIN payment AS p ON c.customer_id = p.customer_id
+  WHERE
+    DATE_PART('year', p.payment_date) = 2007
+  GROUP BY
+    c.customer_id,
+    "Customer Name"
+  ORDER BY
+    "Total Payments" DESC
+  LIMIT 10
+),
+MonthlyPayments AS (
+  SELECT
+    tpc.customer_id,
+    tpc."Customer Name",
+    DATE_PART('year', p.payment_date) AS "Year",
+    DATE_PART('month', p.payment_date) AS "Month",
+    SUM(p.amount) AS "Monthly Payment Amount"
+  FROM
+    TopPayingCustomers AS tpc
+    JOIN payment AS p ON tpc.customer_id = p.customer_id
+  WHERE
+    DATE_PART('year', p.payment_date) = 2007
+  GROUP BY
+    tpc.customer_id,
+    tpc."Customer Name",
+    "Year",
+    "Month"
+)
+SELECT
+  mpc."Customer Name",
+  mpc.customer_id,
+  mpc."Year",
+  mpc."Month",
+  mpc."Monthly Payment Amount",
+  LAG(mpc."Monthly Payment Amount") OVER (PARTITION BY mpc.customer_id ORDER BY mpc."Year", mpc."Month") AS "Previous Month Payment",
+  mpc."Monthly Payment Amount" - LAG(mpc."Monthly Payment Amount") OVER (PARTITION BY mpc.customer_id ORDER BY mpc."Year", mpc."Month") AS "Payment Difference"
+FROM
+  MonthlyPayments AS mpc
+  
+ORDER BY
+	
+mpc.customer_id,
+  mpc."Year",
+  mpc."Month";
+
