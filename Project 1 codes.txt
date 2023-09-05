@@ -137,3 +137,18 @@ mpc.customer_id,
   mpc."Year",
   mpc."Month";
 
+/*QUERY 5: Which films have generated the most revenue? */
+SELECT
+  f.title AS "Film Title",
+  SUM(p.amount) AS "Total Revenue"
+FROM
+  film AS f
+  JOIN inventory AS i ON f.film_id = i.film_id
+  JOIN rental AS r ON i.inventory_id = r.inventory_id
+  JOIN payment AS p ON r.rental_id = p.rental_id
+GROUP BY
+  f.title
+ORDER BY
+  "Total Revenue" DESC
+LIMIT 10;
+
