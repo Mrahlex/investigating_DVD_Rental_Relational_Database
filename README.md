@@ -1,1 +1,1 @@
-# investigating_DVD_Rental_Relational_Database
+# Investigating_DVD_Rental_Relational_Database
